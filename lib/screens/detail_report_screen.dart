@@ -1,0 +1,1 @@
+// Detail report screen placeholder
