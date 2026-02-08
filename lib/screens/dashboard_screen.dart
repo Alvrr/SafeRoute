@@ -65,6 +65,113 @@ class _DashboardActions {
   }
 }
 
+class _FeaturedReportTile extends StatelessWidget {
+  final Report report;
+  final VoidCallback onTap;
+
+  const _FeaturedReportTile({required this.report, required this.onTap});
+
+  String get _locationText {
+    if (report.streetName.trim().isNotEmpty) {
+      return report.streetName;
+    }
+    return 'Lat: ${report.latitude.toStringAsFixed(5)}, Lng: ${report.longitude.toStringAsFixed(5)}';
+  }
+
+  String get _dateText {
+    final date = report.createdAt;
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year} ${date.hour.toString().padLeft(2, '0')}:'
+        '${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  String get _subtitleText {
+    if (report.note.trim().isNotEmpty) {
+      return '${_dateText} • ${report.note.trim()}';
+    }
+    return _dateText;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = report.imageUrl.trim().isNotEmpty;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFD4C4B0)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 180,
+              width: double.infinity,
+              color: const Color(0xFFF5F1ED),
+              child: hasImage
+                  ? Image.network(
+                      report.imageUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes == null
+                                ? null
+                                : loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!,
+                          ),
+                        );
+                      },
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.image_not_supported,
+                        size: 48,
+                        color: Color(0xFF8B7355),
+                      ),
+                    )
+                  : const Icon(
+                      Icons.image_not_supported,
+                      size: 48,
+                      color: Color(0xFF8B7355),
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _locationText,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _subtitleText,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF8B7355),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ReportTile extends StatelessWidget {
   final Report report;
   final VoidCallback onTap;
@@ -101,14 +208,14 @@ class _ReportTile extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: const BorderSide(color: Color(0xFFD4C4B0)),
       ),
       child: ListTile(
         leading: Container(
           width: 52,
           height: 52,
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: const Color(0xFFF5F1ED),
             borderRadius: BorderRadius.circular(10),
           ),
           child: hasImage
@@ -133,13 +240,13 @@ class _ReportTile extends StatelessWidget {
                         ),
                       );
                     },
-                    errorBuilder: (_, __, ___) => Icon(
+                    errorBuilder: (_, __, ___) => const Icon(
                       Icons.image_not_supported,
-                      color: Colors.grey.shade600,
+                      color: Color(0xFF8B7355),
                     ),
                   ),
                 )
-              : Icon(Icons.image_not_supported, color: Colors.grey.shade600),
+              : const Icon(Icons.image_not_supported, color: Color(0xFF8B7355)),
         ),
         title: Text(
           _locationText,
@@ -184,6 +291,8 @@ class _DashboardBodyState extends State<_DashboardBody> {
               prefixIcon: Icon(Icons.search),
               hintText: 'Cari nama jalan...',
               border: OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.white,
             ),
             onChanged: (value) {
               _queryNotifier.value = value.trim().toLowerCase();
@@ -195,113 +304,115 @@ class _DashboardBodyState extends State<_DashboardBody> {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ValueListenableBuilder<String>(
-                    valueListenable: _queryNotifier,
-                    builder: (context, query, _) {
-                      return StreamBuilder<List<Report>>(
-                        stream: _DashboardActions.reportStream(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
+          SizedBox(
+            height: 300,
+            child: ValueListenableBuilder<String>(
+              valueListenable: _queryNotifier,
+              builder: (context, query, _) {
+                return StreamBuilder<List<Report>>(
+                  stream: _DashboardActions.reportStream(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                          if (snapshot.hasError) {
-                            return const Center(
-                              child: Text('Gagal memuat laporan'),
-                            );
-                          }
+                    if (snapshot.hasError) {
+                      return const Center(child: Text('Gagal memuat laporan'));
+                    }
 
-                          final reports = snapshot.data ?? [];
-                          final filtered = query.isEmpty
-                              ? reports
-                              : reports
-                                    .where(
-                                      (report) => report.streetName
-                                          .toLowerCase()
-                                          .contains(query),
-                                    )
-                                    .toList();
+                    final reports = snapshot.data ?? [];
+                    final filtered = query.isEmpty
+                        ? reports
+                        : reports
+                              .where(
+                                (report) => report.streetName
+                                    .toLowerCase()
+                                    .contains(query),
+                              )
+                              .toList();
 
-                          if (filtered.isEmpty) {
-                            return const Center(
-                              child: Text('Belum ada laporan kondisi jalan'),
-                            );
-                          }
-
-                          return ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: filtered.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (context, index) {
-                              final report = filtered[index];
-
-                              return _ReportTile(
-                                report: report,
-                                onTap: () => _DashboardActions.openReportDetail(
-                                  context,
-                                  report,
-                                ),
-                              );
-                            },
-                          );
-                        },
+                    if (filtered.isEmpty) {
+                      return const Center(
+                        child: Text('Belum ada laporan kondisi jalan'),
                       );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(Icons.map_outlined),
-                      title: const Text('Lihat Peta Laporan'),
-                      subtitle: const Text('Tampilkan laporan di peta'),
-                      onTap: () => _DashboardActions.openMap(context),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(Icons.qr_code_scanner),
-                      title: const Text('Scan QR Laporan'),
-                      subtitle: const Text('Buka detail laporan dari QR'),
-                      onTap: () => _DashboardActions.openQrScanner(context),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(Icons.person_outline),
-                      title: const Text('Laporan Saya'),
-                      subtitle: const Text('Kelola laporan milik saya'),
-                      onTap: () => _DashboardActions.openMyReports(context),
-                    ),
-                  ),
-                ],
-              ),
+                    }
+
+                    return ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final report = filtered[index];
+
+                        if (index == 0) {
+                          return _FeaturedReportTile(
+                            report: report,
+                            onTap: () => _DashboardActions.openReportDetail(
+                              context,
+                              report,
+                            ),
+                          );
+                        }
+
+                        return _ReportTile(
+                          report: report,
+                          onTap: () => _DashboardActions.openReportDetail(
+                            context,
+                            report,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Divider(color: Color(0xFF8B7355), thickness: 2, height: 32),
+          const Text(
+            'Laporan',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFFD4C4B0)),
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.map_outlined),
+              title: const Text('Lihat Peta Laporan'),
+              subtitle: const Text('Tampilkan laporan di peta'),
+              onTap: () => _DashboardActions.openMap(context),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFFD4C4B0)),
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.qr_code_scanner),
+              title: const Text('Scan QR Laporan'),
+              subtitle: const Text('Buka detail laporan dari QR'),
+              onTap: () => _DashboardActions.openQrScanner(context),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFFD4C4B0)),
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text('Laporan Saya'),
+              subtitle: const Text('Kelola laporan milik saya'),
+              onTap: () => _DashboardActions.openMyReports(context),
             ),
           ),
         ],
@@ -316,6 +427,7 @@ class _DashboardScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFFAF8F5),
       appBar: AppBar(
         toolbarHeight: 80,
         leadingWidth: 96,
