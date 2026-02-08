@@ -19,7 +19,7 @@ class ReportDatabaseService {
 
   Future<void> addReport(Report report) async {
     await _reportsRef.child(report.id).set({
-      'imagePath': report.imagePath,
+      'imageUrl': report.imageUrl,
       'streetName': report.streetName,
       'note': report.note,
       'latitude': report.latitude,
@@ -74,7 +74,7 @@ class ReportDatabaseService {
 
     return Report(
       id: id,
-      imagePath: map['imagePath']?.toString() ?? '',
+      imageUrl: (map['imageUrl'] ?? map['imagePath'])?.toString() ?? '',
       streetName: map['streetName']?.toString() ?? '',
       note: map['note']?.toString() ?? '',
       latitude: _toDouble(map['latitude']),

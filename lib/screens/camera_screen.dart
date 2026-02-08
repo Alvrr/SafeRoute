@@ -6,6 +6,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/report_model.dart';
+import '../services/cloudinary_service.dart';
 import '../services/location_service.dart';
 import '../services/report_database_service.dart';
 
@@ -20,6 +21,7 @@ class _CameraScreenState extends State<CameraScreen> {
   File? _image;
   final ImagePicker _picker = ImagePicker();
   final ReportDatabaseService _reportService = ReportDatabaseService();
+  final CloudinaryService _cloudinaryService = CloudinaryService();
   final TextEditingController _noteController = TextEditingController();
   bool _isSaving = false;
   double? _latitude;
@@ -93,7 +95,7 @@ class _CameraScreenState extends State<CameraScreen> {
     try {
       final report = Report(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        imagePath: _image!.path,
+        imageUrl: '',
         streetName: _streetName,
         note: _noteController.text.trim(),
         latitude: _latitude!,
@@ -102,7 +104,27 @@ class _CameraScreenState extends State<CameraScreen> {
         userId: emailPrefix,
       );
 
-      await _reportService.addReport(report);
+      final imageUrl = await _cloudinaryService.uploadImage(_image!);
+      if (imageUrl == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal mengunggah foto')),
+        );
+        return;
+      }
+
+      final reportWithImage = Report(
+        id: report.id,
+        imageUrl: imageUrl,
+        streetName: report.streetName,
+        note: report.note,
+        latitude: report.latitude,
+        longitude: report.longitude,
+        createdAt: report.createdAt,
+        userId: report.userId,
+      );
+
+      await _reportService.addReport(reportWithImage);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -178,7 +200,16 @@ class _CameraScreenState extends State<CameraScreen> {
           ElevatedButton.icon(
             onPressed: _isSaving ? null : _saveReport,
             icon: const Icon(Icons.save),
-            label: Text(_isSaving ? 'Menyimpan...' : 'Simpan Laporan'),
+            label: _isSaving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('Simpan Laporan'),
           ),
         ],
       ),

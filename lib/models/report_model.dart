@@ -1,6 +1,6 @@
 class Report {
   final String id;
-  final String imagePath;
+  final String imageUrl;
   final String streetName;
   final String note;
   final double latitude;
@@ -10,7 +10,7 @@ class Report {
 
   Report({
     required this.id,
-    required this.imagePath,
+    required this.imageUrl,
     this.streetName = '',
     this.note = '',
     required this.latitude,

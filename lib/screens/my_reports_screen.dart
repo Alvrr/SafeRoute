@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -52,7 +50,7 @@ class MyReportsScreen extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final report = reports[index];
-              final hasImage = report.imagePath.trim().isNotEmpty;
+              final hasImage = report.imageUrl.trim().isNotEmpty;
 
               return Card(
                 elevation: 0,
@@ -71,9 +69,13 @@ class MyReportsScreen extends StatelessWidget {
                     child: hasImage
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(10),
-                            child: Image.file(
-                              File(report.imagePath),
+                            child: Image.network(
+                              report.imageUrl,
                               fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Icon(
+                                Icons.image_not_supported,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
                           )
                         : Icon(

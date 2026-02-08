@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:gal/gal.dart';
 import 'package:latlong2/latlong.dart';
@@ -126,14 +125,18 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
           if (report.note.trim().isNotEmpty)
             Text('Catatan: ${report.note.trim()}'),
           const SizedBox(height: 16),
-          if (report.imagePath.trim().isNotEmpty)
+          if (report.imageUrl.trim().isNotEmpty)
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.file(
-                File(report.imagePath),
+              child: Image.network(
+                report.imageUrl,
                 height: 220,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox(
+                  height: 120,
+                  child: Center(child: Text('Foto tidak tersedia')),
+                ),
               ),
             )
           else
