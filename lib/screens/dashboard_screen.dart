@@ -304,8 +304,7 @@ class _DashboardBodyState extends State<_DashboardBody> {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            height: 300,
+          Expanded(
             child: ValueListenableBuilder<String>(
               valueListenable: _queryNotifier,
               builder: (context, query, _) {
@@ -367,54 +366,6 @@ class _DashboardBodyState extends State<_DashboardBody> {
               },
             ),
           ),
-          const SizedBox(height: 20),
-          const Divider(color: Color(0xFF8B7355), thickness: 2, height: 32),
-          const Text(
-            'Laporan',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Color(0xFFD4C4B0)),
-            ),
-            child: ListTile(
-              leading: const Icon(Icons.map_outlined),
-              title: const Text('Lihat Peta Laporan'),
-              subtitle: const Text('Tampilkan laporan di peta'),
-              onTap: () => _DashboardActions.openMap(context),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Color(0xFFD4C4B0)),
-            ),
-            child: ListTile(
-              leading: const Icon(Icons.qr_code_scanner),
-              title: const Text('Scan QR Laporan'),
-              subtitle: const Text('Buka detail laporan dari QR'),
-              onTap: () => _DashboardActions.openQrScanner(context),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Color(0xFFD4C4B0)),
-            ),
-            child: ListTile(
-              leading: const Icon(Icons.person_outline),
-              title: const Text('Laporan Saya'),
-              subtitle: const Text('Kelola laporan milik saya'),
-              onTap: () => _DashboardActions.openMyReports(context),
-            ),
-          ),
         ],
       ),
     );
@@ -438,11 +389,118 @@ class _DashboardScaffold extends StatelessWidget {
         centerTitle: true,
         title: const Text('SafeRoute'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _DashboardActions.logout,
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(context).openEndDrawer(),
+            ),
           ),
         ],
+      ),
+      endDrawer: Drawer(
+        backgroundColor: const Color(0xFFF5F1ED),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Menu',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF8B7355),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Divider(color: Color(0xFF8B7355), thickness: 2),
+                const SizedBox(height: 16),
+                Card(
+                  elevation: 0,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Color(0xFFD4C4B0)),
+                  ),
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.map_outlined,
+                      color: Color(0xFF8B7355),
+                    ),
+                    title: const Text('Lihat Peta Laporan'),
+                    subtitle: const Text('Tampilkan laporan di peta'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _DashboardActions.openMap(context);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  elevation: 0,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Color(0xFFD4C4B0)),
+                  ),
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.qr_code_scanner,
+                      color: Color(0xFF8B7355),
+                    ),
+                    title: const Text('Scan QR Laporan'),
+                    subtitle: const Text('Buka detail laporan dari QR'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _DashboardActions.openQrScanner(context);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  elevation: 0,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Color(0xFFD4C4B0)),
+                  ),
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.person_outline,
+                      color: Color(0xFF8B7355),
+                    ),
+                    title: const Text('Laporan Saya'),
+                    subtitle: const Text('Kelola laporan milik saya'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _DashboardActions.openMyReports(context);
+                    },
+                  ),
+                ),
+                const Spacer(),
+                const Divider(color: Color(0xFF8B7355), thickness: 2),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _DashboardActions.logout,
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Logout'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF8B7355),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       body: const _DashboardBody(),
       floatingActionButton: FloatingActionButton(

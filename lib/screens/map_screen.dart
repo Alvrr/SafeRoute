@@ -22,10 +22,7 @@ class _MapScreenState extends State<MapScreen> {
   static const LatLng _initialCenter = LatLng(-2.548926, 118.0148634);
   static const double _initialZoom = 5.0;
 
-  List<Marker> _buildMarkers(
-    BuildContext context,
-    List<Report> reports,
-  ) {
+  List<Marker> _buildMarkers(BuildContext context, List<Report> reports) {
     return reports.map((report) {
       final position = LatLng(report.latitude, report.longitude);
 
@@ -61,9 +58,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Peta Laporan'),
-      ),
+      appBar: AppBar(title: const Text('Peta Laporan')),
       body: Column(
         children: [
           Padding(
@@ -96,10 +91,12 @@ class _MapScreenState extends State<MapScreen> {
                 final filtered = _query.isEmpty
                     ? reports
                     : reports
-                        .where((report) => report.streetName
-                            .toLowerCase()
-                            .contains(_query))
-                        .toList();
+                          .where(
+                            (report) => report.streetName
+                                .toLowerCase()
+                                .contains(_query),
+                          )
+                          .toList();
                 final markers = _buildMarkers(context, filtered);
 
                 if (_query.isNotEmpty && filtered.isNotEmpty) {
@@ -109,8 +106,10 @@ class _MapScreenState extends State<MapScreen> {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       final bounds = LatLngBounds.fromPoints(
                         filtered
-                            .map((report) =>
-                                LatLng(report.latitude, report.longitude))
+                            .map(
+                              (report) =>
+                                  LatLng(report.latitude, report.longitude),
+                            )
                             .toList(),
                       );
                       _mapController.fitCamera(
@@ -126,9 +125,20 @@ class _MapScreenState extends State<MapScreen> {
 
                 return FlutterMap(
                   mapController: _mapController,
-                  options: const MapOptions(
+                  options: MapOptions(
                     initialCenter: _initialCenter,
                     initialZoom: _initialZoom,
+                    minZoom: 4.5,
+                    maxZoom: 18.0,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.all,
+                    ),
+                    cameraConstraint: CameraConstraint.containCenter(
+                      bounds: LatLngBounds(
+                        const LatLng(-11.0, 95.0),
+                        const LatLng(6.0, 141.0),
+                      ),
+                    ),
                   ),
                   children: [
                     TileLayer(
