@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../models/report_model.dart';
 import '../services/cloudinary_service.dart';
@@ -35,9 +36,19 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _takePhoto() async {
-    final XFile? photo =
-        await _picker.pickImage(source: ImageSource.camera);
+    final cameraStatus = await Permission.camera.request();
+    if (!cameraStatus.isGranted) {
+      if (!mounted) return;
+      await _showPermissionDialog(
+        title: 'Izin kamera diperlukan',
+        message:
+            'Aktifkan izin kamera agar bisa mengambil foto kondisi jalan.',
+        canOpenSettings: cameraStatus.isPermanentlyDenied,
+      );
+      return;
+    }
 
+    final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
     if (photo == null) return;
 
     try {
@@ -66,10 +77,48 @@ class _CameraScreenState extends State<CameraScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      final message = e.toString();
+      if (message.contains('permanen') || message.contains('permanen')) {
+        await _showPermissionDialog(
+          title: 'Izin lokasi diperlukan',
+          message:
+              'Aktifkan izin lokasi di Pengaturan agar laporan bisa menyimpan koordinat.',
+          canOpenSettings: true,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
     }
+  }
+
+  Future<void> _showPermissionDialog({
+    required String title,
+    required String message,
+    required bool canOpenSettings,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+          if (canOpenSettings)
+            TextButton(
+              onPressed: () {
+                openAppSettings();
+                Navigator.pop(context);
+              },
+              child: const Text('Buka Pengaturan'),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _saveReport() async {

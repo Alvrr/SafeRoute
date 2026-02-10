@@ -3,6 +3,7 @@ import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart
   as mlkit;
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../models/report_model.dart';
 import '../services/report_database_service.dart';
@@ -46,6 +47,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     if (_isProcessing) return;
 
     try {
+      final hasPermission = await _requestGalleryPermission();
+      if (!hasPermission) return;
+
       final XFile? image =
           await _picker.pickImage(source: ImageSource.gallery);
       if (image == null) return;
@@ -73,6 +77,51 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       );
       setState(() => _isProcessing = false);
     }
+  }
+
+  Future<bool> _requestGalleryPermission() async {
+    PermissionStatus status = await Permission.photos.request();
+    if (!status.isGranted) {
+      status = await Permission.storage.request();
+    }
+
+    if (status.isGranted) return true;
+
+    if (!mounted) return false;
+    await _showPermissionDialog(
+      title: 'Izin galeri diperlukan',
+      message: 'Aktifkan izin galeri agar bisa memilih gambar QR.',
+      canOpenSettings: status.isPermanentlyDenied,
+    );
+    return false;
+  }
+
+  Future<void> _showPermissionDialog({
+    required String title,
+    required String message,
+    required bool canOpenSettings,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+          if (canOpenSettings)
+            TextButton(
+              onPressed: () {
+                openAppSettings();
+                Navigator.pop(context);
+              },
+              child: const Text('Buka Pengaturan'),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _processCode(String code) async {
