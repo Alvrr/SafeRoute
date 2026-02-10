@@ -1,9 +1,15 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../models/report_model.dart';
 import '../services/report_database_service.dart';
+import '../services/location_service.dart';
 import 'report_detail_screen.dart';
 
 class MapScreen extends StatefulWidget {
@@ -18,9 +24,19 @@ class _MapScreenState extends State<MapScreen> {
   String _query = '';
   final MapController _mapController = MapController();
   String _lastFitKey = '';
+  StreamSubscription<Position>? _positionSub;
+  LatLng? _userLocation;
+  bool _hasCenteredOnUser = false;
 
   static const LatLng _initialCenter = LatLng(-2.548926, 118.0148634);
   static const double _initialZoom = 5.0;
+  static const double _userViewRadiusKm = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _initUserLocation();
+  }
 
   List<Marker> _buildMarkers(BuildContext context, List<Report> reports) {
     return reports.map((report) {
@@ -49,9 +65,118 @@ class _MapScreenState extends State<MapScreen> {
     }).toList();
   }
 
+  Marker? _buildUserMarker() {
+    final location = _userLocation;
+    if (location == null) return null;
+
+    return Marker(
+      width: 44,
+      height: 44,
+      point: location,
+      child: const Icon(
+        Icons.my_location,
+        color: Colors.blueAccent,
+        size: 36,
+      ),
+    );
+  }
+
+  Future<void> _initUserLocation() async {
+    try {
+      final position = await LocationService().getCurrentLocation();
+      _updateUserLocation(position);
+      _listenPositionStream();
+    } catch (e) {
+      if (!mounted) return;
+      await _handleLocationError(e.toString());
+    }
+  }
+
+  void _listenPositionStream() {
+    _positionSub?.cancel();
+    _positionSub = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+      ),
+    ).listen((position) {
+      if (!mounted) return;
+      _updateUserLocation(position, recenter: false);
+    });
+  }
+
+  void _updateUserLocation(Position position, {bool recenter = true}) {
+    final newLocation = LatLng(position.latitude, position.longitude);
+    setState(() => _userLocation = newLocation);
+
+    if (recenter && !_hasCenteredOnUser) {
+      _hasCenteredOnUser = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fitToUserLocation(newLocation);
+      });
+    }
+  }
+
+  void _fitToUserLocation(LatLng center) {
+    final latDelta = _userViewRadiusKm / 111.32;
+    final lonDelta = _userViewRadiusKm /
+      (111.32 *
+          math.cos(
+            center.latitude.abs() * (math.pi / 180),
+          ))
+        .clamp(0.0001, double.infinity);
+
+    final bounds = LatLngBounds(
+      LatLng(center.latitude - latDelta, center.longitude - lonDelta),
+      LatLng(center.latitude + latDelta, center.longitude + lonDelta),
+    );
+
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: bounds,
+        padding: const EdgeInsets.all(24),
+      ),
+    );
+  }
+
+  Future<void> _handleLocationError(String message) async {
+    if (!mounted) return;
+    final lower = message.toLowerCase();
+    if (lower.contains('permanen')) {
+      await showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Izin lokasi diperlukan'),
+          content: const Text(
+            'Aktifkan izin lokasi di Pengaturan agar peta bisa menampilkan posisi Anda.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Tutup'),
+            ),
+            TextButton(
+              onPressed: () {
+                openAppSettings();
+                Navigator.pop(context);
+              },
+              child: const Text('Buka Pengaturan'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
+    _positionSub?.cancel();
     super.dispose();
   }
 
@@ -98,6 +223,10 @@ class _MapScreenState extends State<MapScreen> {
                           )
                           .toList();
                 final markers = _buildMarkers(context, filtered);
+                final userMarker = _buildUserMarker();
+                if (userMarker != null) {
+                  markers.add(userMarker);
+                }
 
                 if (_query.isNotEmpty && filtered.isNotEmpty) {
                   final fitKey = '${_query}_${filtered.length}';
